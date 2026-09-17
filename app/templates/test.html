@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Test classify - paperclass{% endblock %}
+{% block content %}
+<h1>Test classify</h1>
+<p class="subtitle">Runs the classifier against a live Paperless document. Read-only - nothing is written back.</p>
+
+<div class="card">
+  <form method="post" action="/test">
+    <label for="paperless_id">Paperless document id</label>
+    <input type="number" id="paperless_id" name="paperless_id" value="{{ paperless_id if paperless_id is not none else '' }}" required>
+    <button type="submit">Classify</button>
+  </form>
+</div>
+
+{% if error %}
+<div class="card">
+  <pre>Error: {{ error }}</pre>
+</div>
+{% endif %}
+
+{% if doc %}
+<div class="card">
+  <h2>Document</h2>
+  <p><strong>Title:</strong> {{ doc.title }}</p>
+  <p><strong>Current document_type (Paperless):</strong> {{ doc.document_type or "-" }}</p>
+  <p><strong>Current tags (Paperless):</strong> {{ doc.tags|join(", ") if doc.tags else "-" }}</p>
+
+  {% if image_data_uri %}
+  <img src="{{ image_data_uri }}" alt="page 1 preview" style="max-width: 320px; border: 1px solid var(--border); border-radius: 8px;">
+  {% endif %}
+</div>
+{% endif %}
+
+{% if result %}
+<div class="card">
+  <h2>Classification result</h2>
+  <p><span class="badge {{ result.status }}">{{ result.status }}</span></p>
+  <p><strong>document_type:</strong> {{ result.document_type or "-" }} (confidence: {{ result.confidence }})</p>
+  <p><strong>tags:</strong> {{ result.tags|join(", ") if result.tags else "-" }}</p>
+  {% if result.reason %}
+  <p><strong>reason:</strong> {{ result.reason }}</p>
+  {% endif %}
+  <p><strong>raw model output:</strong></p>
+  <pre class="mono">{{ result.raw or "-" }}</pre>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Settings - paperclass{% endblock %}
+{% block content %}
+<h1>Settings</h1>
+<p class="subtitle">Live-editable tuning knobs. Applied immediately, no restart needed.</p>
+
+{% if flash %}
+<div class="flash">{{ flash }}</div>
+{% endif %}
+{% if error %}
+<div class="card">
+  <pre>Error: {{ error }}</pre>
+</div>
+{% endif %}
+
+<div class="card">
+  <form method="post" action="/settings">
+    <label for="ollama_model">Ollama model</label>
+    <input type="text" id="ollama_model" name="ollama_model" value="{{ ollama_model }}" required>
+
+    <label for="classify_dpi">Classify DPI</label>
+    <input type="number" id="classify_dpi" name="classify_dpi" value="{{ classify_dpi }}" required>
+    <div class="hint">Higher = sharper but slower classification (150 is a good default).</div>
+
+    <label for="taxonomy_refresh_minutes">Taxonomy refresh (minutes)</label>
+    <input type="number" id="taxonomy_refresh_minutes" name="taxonomy_refresh_minutes" value="{{ taxonomy_refresh_minutes }}" required>
+
+    <label for="candidate_tags">Candidate tags</label>
+    <textarea id="candidate_tags" name="candidate_tags" rows="10">{{ candidate_tags }}</textarea>
+    <div class="hint">Only tags in this list will ever be suggested by the model - one per line.</div>
+
+    <button type="submit">Save</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>Connection (edit .env + restart to change)</h2>
+  <p><strong>Paperless URL:</strong> {{ paperless_url }}</p>
+  <p><strong>Ollama URL:</strong> {{ ollama_url }}</p>
+</div>
+{% endblock %}

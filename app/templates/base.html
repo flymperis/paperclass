@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}paperclass{% endblock %}</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --card: #ffffff;
+    --border: #e3e6ea;
+    --text: #1c2128;
+    --muted: #6b7280;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --err: #dc2626;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 14px;
+  }
+  header {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  header .brand { font-weight: 700; font-size: 16px; }
+  header .brand span { color: var(--accent); }
+  nav a {
+    color: var(--muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-weight: 500;
+  }
+  nav a.active, nav a:hover { color: var(--text); background: var(--bg); }
+  main {
+    max-width: 1000px;
+    margin: 24px auto;
+    padding: 0 20px 40px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 14px; color: var(--muted); font-weight: 600; }
+  .subtitle { color: var(--muted); margin: 0 0 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: none; }
+  .badge {
+    display: inline-block;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+  }
+  .badge.classified { background: var(--ok); }
+  .badge.needs_review { background: var(--warn); }
+  .badge.error { background: var(--err); }
+  .badge.queued, .badge.processing { background: var(--muted); }
+  .stats { display: flex; gap: 16px; margin-bottom: 20px; }
+  .stat { flex: 1; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; }
+  .stat .n { font-size: 26px; font-weight: 700; }
+  .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  label { display: block; font-weight: 600; margin: 14px 0 6px; }
+  input[type=text], input[type=number], textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: inherit;
+  }
+  .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  button {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 16px;
+  }
+  button:hover { opacity: .92; }
+  button.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .flash { background: #ecfdf3; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
+  .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
+  .empty { color: var(--muted); padding: 20px 0; text-align: center; }
+  pre { white-space: pre-wrap; word-break: break-word; background: var(--bg); padding: 12px; border-radius: 8px; }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">paper<span>class</span></div>
+  <nav>
+    <a href="/" class="{% if active == 'dashboard' %}active{% endif %}">Dashboard</a>
+    <a href="/test" class="{% if active == 'test' %}active{% endif %}">Test classify</a>
+    <a href="/settings" class="{% if active == 'settings' %}active{% endif %}">Settings</a>
+  </nav>
+</header>
+<main>
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - paperclass{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="subtitle">Last {{ runs|length }} classification runs.</p>
+
+<div class="stats">
+  <div class="stat"><div class="n">{{ counts.total }}</div><div class="label">Total</div></div>
+  <div class="stat"><div class="n">{{ counts.classified }}</div><div class="label">Classified</div></div>
+  <div class="stat"><div class="n">{{ counts.needs_review }}</div><div class="label">Needs review</div></div>
+  <div class="stat"><div class="n">{{ counts.error }}</div><div class="label">Error</div></div>
+  <div class="stat"><div class="n">{{ counts.in_progress }}</div><div class="label">In progress</div></div>
+</div>
+
+<div class="card">
+  {% if runs %}
+  <table>
+    <thead>
+      <tr>
+        <th>Doc ID</th>
+        <th>Type</th>
+        <th>Tags</th>
+        <th>Status</th>
+        <th>Confidence</th>
+        <th>Duration</th>
+        <th>Created</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for run in runs %}
+      <tr>
+        <td><a href="/test?paperless_id={{ run.paperless_id }}">{{ run.paperless_id }}</a></td>
+        <td>{{ run.document_type or "-" }}</td>
+        <td>{{ run.tags|join(", ") if run.tags else "-" }}</td>
+        <td><span class="badge {{ run.status }}">{{ run.status }}</span></td>
+        <td>{{ run.confidence or "-" }}</td>
+        <td>{{ "%.1fs"|format(run.duration_s) if run.duration_s is not none else "-" }}</td>
+        <td>{{ run.created_at }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No classifications yet - upload a document in Paperless or try <a href="/test">/test</a>.</div>
+  {% endif %}
+</div>
+{% endblock %}

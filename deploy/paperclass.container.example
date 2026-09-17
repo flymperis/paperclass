@@ -1,0 +1,27 @@
+# Podman Quadlet unit. Copy to ~/.config/containers/systemd/paperclass.container
+# on the target host, adjust the paths below, then:
+#   systemctl --user daemon-reload && systemctl --user start paperclass.service
+
+[Unit]
+Description=paperclass
+After=network-online.target
+
+[Container]
+Image=localhost/paperclass:latest
+ContainerName=paperclass
+Network=homelab.network
+PublishPort=8091:8000
+EnvironmentFile=%h/.config/paperclass/paperclass.env
+Volume=%h/homelab/paperclass/data:/data:Z
+HealthCmd=python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)"
+HealthInterval=30s
+HealthTimeout=5s
+HealthRetries=3
+HealthOnFailure=kill
+
+[Service]
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target
