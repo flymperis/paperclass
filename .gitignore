@@ -6,3 +6,9 @@ data/
 .pytest_cache/
 .claude/
 *.png
+.coverage
+htmlcov/
+.vscode/
+.idea/
+.DS_Store
+*.log

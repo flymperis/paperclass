@@ -1,7 +1,7 @@
 """Single-consumer queue: classify one document at a time.
 
 The GPU can only hold one Ollama model resident at once, so a strict FIFO
-matches vibehealth's own accepted constraint. The queue is DB-backed (the
+is an accepted constraint here, not an oversight. The queue is DB-backed (the
 `classification_runs` table doubles as the queue) rather than in-memory, so a
 restart never silently drops a waiting document - stale PROCESSING rows are
 flipped back to QUEUED on startup instead, since classification is idempotent.

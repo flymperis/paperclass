@@ -26,7 +26,9 @@ _GENERIC_TITLE_RE = re.compile(
     r"""^(
         scan[\s_-]*\d*([\s_-]*\d{4}[-_]\d{2}[-_]\d{2})? |
         img[\s_-]*\d+ |
-        (image|photo|document|doc|untitled|scanned[\s_-]*document)([\s_-]*\d+)? |
+        (image|photo|document|doc|untitled|scanned[\s_-]*document|file|attachment)([\s_-]*\(?\d+\)?)? |
+        download(ed|s)?([\s_-]*\(?\d+\)?)? |
+        new[\s_-]*document(s)?([\s_-]*\(?\d+\)?)? |
         \d{4}[-_]\d{2}[-_]\d{2}([\s_t]\d{2}[-_:]\d{2}(:\d{2})?)? |
         [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
     )$""",

@@ -14,31 +14,31 @@
 
 <div class="card">
   {% if runs %}
-  <table>
+  <table id="runs-table">
     <thead>
       <tr>
-        <th>Doc ID</th>
-        <th>Type</th>
-        <th>Tags</th>
-        <th>Correspondent</th>
-        <th>Title</th>
-        <th>Status</th>
-        <th>Confidence</th>
-        <th>Duration</th>
-        <th>Created</th>
+        <th data-sort="num">Doc ID</th>
+        <th data-sort="text">Type</th>
+        <th data-sort="text">Tags</th>
+        <th data-sort="text">Correspondent</th>
+        <th data-sort="text">Title</th>
+        <th data-sort="text">Status</th>
+        <th data-sort="text">Confidence</th>
+        <th data-sort="num">Duration</th>
+        <th data-sort="text">Created</th>
       </tr>
     </thead>
     <tbody>
       {% for run in runs %}
       <tr>
-        <td><a href="/test?paperless_id={{ run.paperless_id }}">{{ run.paperless_id }}</a></td>
+        <td data-value="{{ run.paperless_id }}"><a href="/test?paperless_id={{ run.paperless_id }}">{{ run.paperless_id }}</a></td>
         <td>{{ run.document_type or "-" }}</td>
         <td>{{ run.tags|join(", ") if run.tags else "-" }}</td>
         <td>{{ run.correspondent or "-" }}</td>
         <td class="truncate" title="{{ run.title or '' }}">{{ run.title or "-" }}</td>
         <td><span class="badge {{ run.status }}">{{ run.status }}</span></td>
         <td>{{ run.confidence or "-" }}</td>
-        <td>{{ "%.1fs"|format(run.duration_s) if run.duration_s is not none else "-" }}</td>
+        <td data-value="{{ run.duration_s if run.duration_s is not none else '' }}">{{ "%.1fs"|format(run.duration_s) if run.duration_s is not none else "-" }}</td>
         <td>{{ run.created_at }}</td>
       </tr>
       {% endfor %}
@@ -48,4 +48,61 @@
   <div class="empty">No classifications yet - upload a document in Paperless or try <a href="/test">/test</a>.</div>
   {% endif %}
 </div>
+<script>
+  // Client-side sort of the (at most 50) dashboard rows - no server round-trip needed.
+  (function () {
+    var table = document.getElementById("runs-table");
+    if (!table) return;
+    var headers = table.querySelectorAll("th");
+    var tbody = table.querySelector("tbody");
+    var sortState = { index: null, asc: true };
+
+    function cellValue(row, index) {
+      var cell = row.cells[index];
+      var raw = cell.hasAttribute("data-value") ? cell.getAttribute("data-value") : cell.textContent;
+      return raw.trim();
+    }
+
+    function sortByColumn(index, type) {
+      var asc = sortState.index === index ? !sortState.asc : true;
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+
+      rows.sort(function (a, b) {
+        var av = cellValue(a, index);
+        var bv = cellValue(b, index);
+        var cmp;
+        if (type === "num") {
+          var an = parseFloat(av);
+          var bn = parseFloat(bv);
+          if (isNaN(an)) an = -Infinity;
+          if (isNaN(bn)) bn = -Infinity;
+          cmp = an - bn;
+        } else {
+          cmp = av.toLowerCase().localeCompare(bv.toLowerCase());
+        }
+        return asc ? cmp : -cmp;
+      });
+
+      rows.forEach(function (row) { tbody.appendChild(row); });
+      sortState = { index: index, asc: asc };
+      updateHeaderIndicators();
+    }
+
+    function updateHeaderIndicators() {
+      headers.forEach(function (th, i) {
+        th.textContent = th.textContent.replace(/\s*[▲▼]$/, "");
+        if (i === sortState.index) {
+          th.textContent += sortState.asc ? " ▲" : " ▼";
+        }
+      });
+    }
+
+    headers.forEach(function (th, index) {
+      var type = th.getAttribute("data-sort");
+      if (!type) return;
+      th.style.cursor = "pointer";
+      th.addEventListener("click", function () { sortByColumn(index, type); });
+    });
+  })();
+</script>
 {% endblock %}
