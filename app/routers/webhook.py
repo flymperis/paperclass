@@ -5,8 +5,13 @@ Paperless's Webhook action has no clean document-id placeholder - only
 either a `paperless_id` field directly (handy for our own manual testing) or
 a `doc_url`/`document_url`/`url` field to regex the id from. It also accepts
 either JSON or form-encoded bodies, and logs the raw payload when
-PAPERCLASS_LOG_RAW_WEBHOOKS=true, since the exact shape Paperless sends
-should be verified empirically rather than assumed.
+LOG_RAW_WEBHOOKS=true, since the exact shape Paperless sends should be
+verified empirically rather than assumed.
+
+Confirmed empirically against a real Paperless v3.1.3 Workflow webhook action
+with `as_json: true`: the request body is a JSON-encoded STRING containing
+the templated JSON text (i.e. double-encoded), not a plain JSON object - so
+a str result from the first `json.loads()` gets parsed a second time.
 """
 
 from __future__ import annotations
@@ -46,14 +51,31 @@ def _extract_paperless_id(body: dict) -> int | None:
     return None
 
 
+def _parse_body(raw: bytes) -> dict | None:
+    """Returns a dict, or None if `raw` isn't JSON at all (caller falls back to form data)."""
+    try:
+        parsed = json.loads(raw)
+    except ValueError:
+        return None
+    if isinstance(parsed, str):
+        # Paperless's `as_json` webhook body option double-encodes: the body
+        # is a JSON string literal containing the templated JSON text.
+        try:
+            parsed = json.loads(parsed)
+        except ValueError:
+            return None
+    return parsed if isinstance(parsed, dict) else None
+
+
 @router.post("/webhook/classify", dependencies=[Depends(verify_webhook_secret)])
 async def webhook_classify(request: Request) -> dict:
     raw = await request.body()
     body: dict = {}
     if raw:
-        try:
-            body = json.loads(raw)
-        except ValueError:
+        parsed = _parse_body(raw)
+        if parsed is not None:
+            body = parsed
+        else:
             form = await request.form()
             body = dict(form)
 

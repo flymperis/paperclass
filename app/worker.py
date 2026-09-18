@@ -107,7 +107,7 @@ async def _process(run_id: int, paperless: Paperless, ollama: Ollama, taxonomy: 
             run.finished_at = datetime.now()
             session.add(run)
             session.commit()
-        log.info("doc %s -> type=%s status=%s (%.1fs)", paperless_id, result.document_type, status, run.duration_s)
+            log.info("doc %s -> type=%s status=%s (%.1fs)", paperless_id, result.document_type, status, run.duration_s)
     except Exception as exc:
         log.exception("classification failed for doc %s", paperless_id)
         with Session(engine) as session:
