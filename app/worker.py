@@ -12,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlmodel import Session, select
 
@@ -32,6 +32,50 @@ _wake = asyncio.Event()
 
 def wake() -> None:
     _wake.set()
+
+
+def enqueue(paperless_id: int) -> tuple[str, int]:
+    """Queue `paperless_id` for real classification + write-back, unless a run
+    for it is already in-flight or was just processed.
+
+    The single source of truth for turning a Paperless document id into a
+    durable QUEUED `ClassificationRun` row - shared by the Paperless webhook
+    handler (new documents) and the manual "Apply" action on /test (on-demand
+    reclassification of an existing document), so there is exactly one place
+    that decides whether to queue, dedupe, or skip.
+
+    Returns `(status, run_id)` where `status` is one of "queued" (a new run
+    was inserted and the worker was woken), "already_queued" (a QUEUED or
+    PROCESSING run for this id already exists), or "recently_processed" (a
+    run for this id was created within the last 60s, regardless of outcome -
+    guards against double-fired webhooks/double-clicks).
+    """
+    with Session(engine) as session:
+        in_flight = session.exec(
+            select(ClassificationRun)
+            .where(ClassificationRun.paperless_id == paperless_id)
+            .where(ClassificationRun.status.in_([RunStatus.QUEUED, RunStatus.PROCESSING]))
+        ).first()
+        if in_flight is not None:
+            return "already_queued", in_flight.id
+
+        recent_cutoff = datetime.now() - timedelta(seconds=60)
+        recent_dupe = session.exec(
+            select(ClassificationRun)
+            .where(ClassificationRun.paperless_id == paperless_id)
+            .where(ClassificationRun.created_at >= recent_cutoff)
+            .order_by(ClassificationRun.id.desc())
+        ).first()
+        if recent_dupe is not None:
+            return "recently_processed", recent_dupe.id
+
+        run = ClassificationRun(paperless_id=paperless_id, status=RunStatus.QUEUED)
+        session.add(run)
+        session.commit()
+        session.refresh(run)
+
+    wake()
+    return "queued", run.id
 
 
 def reset_stale() -> None:
@@ -75,17 +119,34 @@ async def _process(run_id: int, paperless: Paperless, ollama: Ollama, taxonomy: 
     with Session(engine) as session:
         run = session.get(ClassificationRun, run_id)
         paperless_id = run.paperless_id
-        prev_tags = json.loads(run.applied_tag_ids or "[]")
-        prev_type = run.applied_document_type_id
+
+        prior_run = session.exec(
+            select(ClassificationRun)
+            .where(ClassificationRun.paperless_id == paperless_id)
+            .where(ClassificationRun.status.in_([RunStatus.CLASSIFIED, RunStatus.NEEDS_REVIEW]))
+            .order_by(ClassificationRun.id.desc())
+        ).first()
+
+        if prior_run:
+            prev_tags = json.loads(prior_run.applied_tag_ids or "[]")
+            prev_type = prior_run.applied_document_type_id
+            prev_correspondent = prior_run.applied_correspondent_id
+        else:
+            prev_tags = []
+            prev_type = None
+            prev_correspondent = None
 
     cfg = runtime_config.load()
     model, dpi = cfg.ollama_model, cfg.classify_dpi
+    blacklist = runtime_config.correspondent_blacklist()
 
     start = datetime.now()
     try:
         file_bytes = await paperless.download(paperless_id)
-        result = await classify(ollama, model, taxonomy, file_bytes, dpi)
-        applied_type, applied_tags, note = await apply(paperless, taxonomy, paperless_id, result, prev_tags, prev_type)
+        result = await classify(ollama, model, taxonomy, file_bytes, dpi, blacklist)
+        applied_type, applied_tags, applied_correspondent, note = await apply(
+            paperless, taxonomy, paperless_id, result, prev_tags, prev_type, prev_correspondent
+        )
         status = {
             "classified": RunStatus.CLASSIFIED,
             "needs_review": RunStatus.NEEDS_REVIEW,
@@ -97,8 +158,11 @@ async def _process(run_id: int, paperless: Paperless, ollama: Ollama, taxonomy: 
             run.status = status
             run.document_type = result.document_type
             run.tags = json.dumps(result.tags)
+            run.correspondent = result.correspondent
+            run.title = result.title
             run.applied_document_type_id = applied_type
             run.applied_tag_ids = json.dumps(applied_tags)
+            run.applied_correspondent_id = applied_correspondent
             run.confidence = result.confidence
             run.raw_model_output = result.raw
             run.reason = note or result.reason
