@@ -1,9 +1,9 @@
 # paperclass
 
-Standalone Paperless-ngx auto-classifier. Assigns `document_type` + `tags` to
-newly uploaded documents by reading the actual page image with a local vision
-model via Ollama (not just OCR'd text), so it holds up on imperfect scans
-(e.g. Greek documents).
+Standalone Paperless-ngx auto-classifier. Assigns `document_type`, `tags`,
+`correspondent`, and `title` to newly uploaded documents by reading the actual
+page image with a local vision model via Ollama (not just OCR'd text), so it
+holds up on imperfect scans (e.g. Greek documents).
 
 Fully independent: its own repo, container, and database - no dependency on
 any other project. It just needs a Paperless-ngx URL/API token and an Ollama
@@ -43,12 +43,24 @@ URL/vision model to talk to.
    `X-Paperclass-Secret: <your WEBHOOK_SECRET>` if you set one, and body
    `{"doc_url": "{{ doc_url }}"}`.
 3. That's it - paperclass fetches its own copy of the document, classifies
-   it, and PATCHes `document_type`/`tags` back.
+   it, and PATCHes `document_type`/`tags`/`correspondent`/`title` back.
 
 Candidate tags/types are read live from Paperless on startup (and refreshed
 hourly), so it always classifies into whatever taxonomy Paperless currently
 has - edit `CANDIDATE_TAGS` in `.env` if you want to change which tags the
-model is allowed to choose from.
+model is allowed to choose from. Correspondents are not restricted to a
+curated list - paperclass will fuzzy-match a suggested name against existing
+correspondents, or create a new one if there's no confident match.
+
+`title` is only ever overwritten when the document's current title still
+looks auto-generated (empty, a bare filename, or a scanner default like
+`Scan_2026-01-01`/`IMG_1234`) - a title a human wrote, or that a previous
+confident run already set, is left alone.
+
+`correspondent` is never allowed to be the document owner's own name -
+edit `CORRESPONDENT_BLACKLIST` in `.env` (or the equivalent Settings-page
+textarea, editable at runtime) to list the name/variants that should never
+be suggested as a correspondent.
 
 ## Run it
 
@@ -88,9 +100,9 @@ LAN-only access) at the root of the published port:
 - **`/test`** — Manual classification tester: paste a Paperless document ID to
   see what the model would classify it as (with image preview and confidence).
   Useful for tuning or debugging.
-- **`/settings`** — Configure candidate tags (one per line), Ollama model name,
-  document image DPI for processing, and taxonomy refresh frequency (in
-  minutes) without restarting.
+- **`/settings`** — Configure candidate tags (one per line), the correspondent
+  blacklist (one per line), Ollama model name, document image DPI for
+  processing, and taxonomy refresh frequency (in minutes) without restarting.
 
 **Important**: This interface has no authentication by design (the whole service
 assumes a trusted network). Do not expose it to the internet without adding
@@ -114,7 +126,10 @@ your own reverse-proxy authentication / HTTPS layer.
 - Low-confidence or failed classification -> tags with `Needs Review`
   instead of guessing; `document_type` is left untouched.
 - Idempotent: re-running on the same document only removes tags paperclass
-  itself previously applied, and never overwrites a `document_type` a human
-  has since corrected.
+  itself previously applied, and never overwrites a `document_type` or
+  `correspondent` a human has since corrected.
+- Never writes the document owner's own name as a `correspondent` (see
+  `CORRESPONDENT_BLACKLIST`), even if the model's answer ignores the prompt's
+  instruction to avoid it.
 - Audit trail in SQLite (`GET /api/runs`, or `sqlite3 data/paperclass.db`) -
   no UI, this is a headless automation service.

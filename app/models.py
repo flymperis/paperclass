@@ -24,8 +24,11 @@ class ClassificationRun(SQLModel, table=True):
     status: RunStatus = Field(default=RunStatus.QUEUED)
     document_type: str | None = None
     tags: str = "[]"  # JSON list of tag names the model chose
+    correspondent: str | None = None  # correspondent name the model chose (empty/None if not confident)
+    title: str | None = None  # title the model chose (empty/None if not confident, or not applied)
     applied_document_type_id: int | None = None
     applied_tag_ids: str = "[]"  # JSON list of ids we actually PATCHed
+    applied_correspondent_id: int | None = None
     confidence: str = ""
     raw_model_output: str = ""
     reason: str = ""  # error text, or "skipped: manually corrected"
@@ -47,6 +50,7 @@ class RuntimeConfig(SQLModel, table=True):
 
     id: int = Field(default=1, primary_key=True)
     candidate_tags: str = "[]"  # JSON list of tag names
+    correspondent_blacklist: str = "[]"  # JSON list of names never suggested as a correspondent
     ollama_model: str = ""
     classify_dpi: int = 0
     taxonomy_refresh_minutes: int = 0

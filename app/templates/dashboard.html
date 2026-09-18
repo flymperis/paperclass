@@ -20,6 +20,8 @@
         <th>Doc ID</th>
         <th>Type</th>
         <th>Tags</th>
+        <th>Correspondent</th>
+        <th>Title</th>
         <th>Status</th>
         <th>Confidence</th>
         <th>Duration</th>
@@ -32,6 +34,8 @@
         <td><a href="/test?paperless_id={{ run.paperless_id }}">{{ run.paperless_id }}</a></td>
         <td>{{ run.document_type or "-" }}</td>
         <td>{{ run.tags|join(", ") if run.tags else "-" }}</td>
+        <td>{{ run.correspondent or "-" }}</td>
+        <td class="truncate" title="{{ run.title or '' }}">{{ run.title or "-" }}</td>
         <td><span class="badge {{ run.status }}">{{ run.status }}</span></td>
         <td>{{ run.confidence or "-" }}</td>
         <td>{{ "%.1fs"|format(run.duration_s) if run.duration_s is not none else "-" }}</td>

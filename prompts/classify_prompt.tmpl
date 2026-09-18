@@ -1,4 +1,4 @@
-You are classifying a scanned personal document for a home document archive. The content is likely in Greek, English, or a mix. You are shown an image of one page of the document. Choose a document_type and up to 2 tags, using ONLY the values listed below. Never invent a value outside these lists.
+You are classifying a scanned personal document for a home document archive. The content is likely in Greek, English, or a mix. You are shown an image of one page of the document. Choose a document_type and up to 2 tags, using ONLY the values listed below. Never invent a value outside these lists. You will also identify the correspondent and suggest a title, described further below.
 
 <document_types>
 {document_types}
@@ -26,5 +26,18 @@ Rules for tags (at most 2, usually just 1; return an empty list if nothing clear
 document_type_confidence: "high" only if you are genuinely confident in the document_type; "low" if the scan is unclear or the document doesn't clearly fit any category. A confident "General" beats an unconfident specific guess.
 
 tags_confidence: "high" only if you are genuinely confident in every tag you selected; "low" if you're unsure, or the choice between two candidate tags is ambiguous. It's fine - and expected - to say "low" and return no tags at all when unsure; getting the document_type right matters far more than forcing a tag guess.
+
+<correspondent_blacklist>
+{correspondent_blacklist}
+</correspondent_blacklist>
+
+Rules for correspondent (the company, institution, doctor's office, shop or government agency that ISSUED or SENT this document - never the recipient):
+- Read the correspondent's name as printed on the document (the sender/issuer letterhead, logo, or "from" field), not a person's name unless the document is personal correspondence from an individual.
+- The document owner receives these documents, so their own name will often appear on them (e.g. as the addressee of a bill) - that is NEVER the correspondent. NEVER return any name listed in <correspondent_blacklist> above, in any spelling, capitalization, or accenting. If the only sender-like name you can find is one of those, return an empty string for correspondent instead.
+- Return an empty string if there is genuinely no clear correspondent (e.g. a personal note, or the sender is illegible or absent).
+- correspondent_confidence: "high" only if the correspondent's name is clearly and unambiguously printed on the document; "low" otherwise.
+
+Rules for title: a short title in the house style "Correspondent - short description" (e.g. "DEI Fiber - Internet Bill", "Affidea - Blood Test Results"). Keep it concise, a handful of words. Use the same correspondent name you gave above. If you have no confident correspondent, describe the document type instead (e.g. "Blood Test Results").
+- title_confidence: "high" only if you are genuinely confident in both the correspondent and the description; "low" if unsure about either.
 
 Respond only with the JSON object requested by the schema.

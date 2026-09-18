@@ -30,6 +30,12 @@ class Settings(BaseSettings):
         "Shopping",
         "Vehicle",
     ]
+    correspondent_blacklist: list[str] = [
+        "Fotis Lymperis",
+        "Φώτιος Λυμπέρης",
+        "ΦΩΤΙΟΣ ΛΥΜΠΕΡΗΣ",
+        "Φώτης Λυμπέρης",
+    ]
     needs_review_tag: str = "Needs Review"
     taxonomy_refresh_minutes: int = 60
     classify_dpi: int = 150

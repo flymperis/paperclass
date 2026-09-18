@@ -19,16 +19,12 @@ from __future__ import annotations
 import json
 import logging
 import re
-from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, Request
-from sqlmodel import Session, select
 
 from ..config import get_settings
-from ..db import engine
-from ..models import ClassificationRun, RunStatus
 from ..security import verify_webhook_secret
-from ..worker import wake
+from ..worker import enqueue
 
 log = logging.getLogger("paperclass")
 router = APIRouter()
@@ -87,29 +83,5 @@ async def webhook_classify(request: Request) -> dict:
         log.warning("webhook: could not extract a document id from body=%s", body)
         return {"status": "ignored", "reason": "no document id found"}
 
-    with Session(engine) as session:
-        in_flight = session.exec(
-            select(ClassificationRun)
-            .where(ClassificationRun.paperless_id == paperless_id)
-            .where(ClassificationRun.status.in_([RunStatus.QUEUED, RunStatus.PROCESSING]))
-        ).first()
-        if in_flight is not None:
-            return {"status": "already_queued", "paperless_id": paperless_id, "run_id": in_flight.id}
-
-        recent_cutoff = datetime.now() - timedelta(seconds=60)
-        recent_dupe = session.exec(
-            select(ClassificationRun)
-            .where(ClassificationRun.paperless_id == paperless_id)
-            .where(ClassificationRun.created_at >= recent_cutoff)
-            .order_by(ClassificationRun.id.desc())
-        ).first()
-        if recent_dupe is not None:
-            return {"status": "recently_processed", "paperless_id": paperless_id, "run_id": recent_dupe.id}
-
-        run = ClassificationRun(paperless_id=paperless_id, status=RunStatus.QUEUED)
-        session.add(run)
-        session.commit()
-        session.refresh(run)
-
-    wake()
-    return {"status": "queued", "paperless_id": paperless_id, "run_id": run.id}
+    status, run_id = enqueue(paperless_id)
+    return {"status": status, "paperless_id": paperless_id, "run_id": run_id}

@@ -4,11 +4,15 @@
 <h1>Test classify</h1>
 <p class="subtitle">Runs the classifier against a live Paperless document. Read-only - nothing is written back.</p>
 
+{% if flash %}
+<div class="flash">{{ flash }} <a href="/">Go to Dashboard</a>.</div>
+{% endif %}
+
 <div class="card">
   <form method="post" action="/test">
     <label for="paperless_id">Paperless document id</label>
     <input type="number" id="paperless_id" name="paperless_id" value="{{ paperless_id if paperless_id is not none else '' }}" required>
-    <button type="submit">Classify</button>
+    <button type="submit">Classify (preview only)</button>
   </form>
 </div>
 
@@ -21,7 +25,7 @@
 {% if doc %}
 <div class="card">
   <h2>Document</h2>
-  <p><strong>Title:</strong> {{ doc.title }}</p>
+  <p><strong>Current title (Paperless):</strong> {{ doc.title }}</p>
   <p><strong>Current document_type (Paperless):</strong> {{ doc.document_type or "-" }}</p>
   <p><strong>Current tags (Paperless):</strong> {{ doc.tags|join(", ") if doc.tags else "-" }}</p>
 
@@ -37,11 +41,29 @@
   <p><span class="badge {{ result.status }}">{{ result.status }}</span></p>
   <p><strong>document_type:</strong> {{ result.document_type or "-" }} (confidence: {{ result.confidence }})</p>
   <p><strong>tags:</strong> {{ result.tags|join(", ") if result.tags else "-" }}</p>
+  <p><strong>correspondent:</strong> {{ result.correspondent or "-" }}</p>
+  <p><strong>title:</strong> {{ result.title or "-" }}</p>
   {% if result.reason %}
   <p><strong>reason:</strong> {{ result.reason }}</p>
   {% endif %}
   <p><strong>raw model output:</strong></p>
   <pre class="mono">{{ result.raw or "-" }}</pre>
+</div>
+
+<div class="card danger">
+  <h2>Apply this classification for real</h2>
+  <p class="warning-text">Warning: this actually updates document {{ paperless_id }} in Paperless - tags, document type, correspondent, and possibly the title will be overwritten for real.</p>
+  <p class="hint">
+    This queues the document on the same background classification queue the Paperless webhook uses for new
+    documents (one document processed at a time, since the model can only run on the GPU one at a time). It
+    re-runs classification and writes back the result when the queue gets to it - processing is asynchronous,
+    not immediate, so nothing changes on this page. Check the <a href="/">Dashboard</a> in a few moments for
+    the outcome.
+  </p>
+  <form method="post" action="/test/apply">
+    <input type="hidden" name="paperless_id" value="{{ paperless_id }}">
+    <button type="submit" class="danger">Apply to Paperless - writes back for real</button>
+  </form>
 </div>
 {% endif %}
 {% endblock %}

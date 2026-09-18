@@ -60,6 +60,7 @@
   .subtitle { color: var(--muted); margin: 0 0 20px; }
   table { width: 100%; border-collapse: collapse; }
   th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  td.truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
   tr:last-child td { border-bottom: none; }
   .badge {
@@ -101,6 +102,9 @@
   }
   button:hover { opacity: .92; }
   button.secondary { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--err); }
+  .card.danger { border-color: var(--err); background: #fef2f2; }
+  .warning-text { color: var(--err); font-weight: 600; margin: 0 0 10px; }
   .flash { background: #ecfdf3; border: 1px solid #a7f3d0; color: #065f46; padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; }
   .mono { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px; }
   .empty { color: var(--muted); padding: 20px 0; text-align: center; }

@@ -29,6 +29,10 @@
     <textarea id="candidate_tags" name="candidate_tags" rows="10">{{ candidate_tags }}</textarea>
     <div class="hint">Only tags in this list will ever be suggested by the model - one per line.</div>
 
+    <label for="correspondent_blacklist">Correspondent blacklist</label>
+    <textarea id="correspondent_blacklist" name="correspondent_blacklist" rows="6">{{ correspondent_blacklist }}</textarea>
+    <div class="hint">Names that will never be written as a correspondent (e.g. the document owner's own name/variants) - one per line.</div>
+
     <button type="submit">Save</button>
   </form>
 </div>

@@ -45,9 +45,19 @@ class Paperless:
         rows = await self._get_all("/api/document_types/", {})
         return {r["name"]: r["id"] for r in rows}
 
+    async def correspondents(self) -> dict[str, int]:
+        rows = await self._get_all("/api/correspondents/", {})
+        return {r["name"]: r["id"] for r in rows}
+
     async def create_tag(self, name: str) -> int:
         async with self._client() as client:
             resp = await client.post("/api/tags/", json={"name": name})
+            resp.raise_for_status()
+            return resp.json()["id"]
+
+    async def create_correspondent(self, name: str) -> int:
+        async with self._client() as client:
+            resp = await client.post("/api/correspondents/", json={"name": name})
             resp.raise_for_status()
             return resp.json()["id"]
 
@@ -68,10 +78,21 @@ class Paperless:
             resp.raise_for_status()
             return resp.content
 
-    async def patch_document(self, paperless_id: int, document_type_id: int | None, tag_ids: list[int]) -> None:
+    async def patch_document(
+        self,
+        paperless_id: int,
+        document_type_id: int | None,
+        tag_ids: list[int],
+        correspondent_id: int | None = None,
+        title: str | None = None,
+    ) -> None:
         payload: dict[str, Any] = {"tags": tag_ids}
         if document_type_id is not None:
             payload["document_type"] = document_type_id
+        if correspondent_id is not None:
+            payload["correspondent"] = correspondent_id
+        if title is not None:
+            payload["title"] = title
         async with self._client() as client:
             resp = await client.patch(f"/api/documents/{paperless_id}/", json=payload)
             resp.raise_for_status()
