@@ -56,6 +56,36 @@ class Ollama:
             return resp.json()
         raise AssertionError("unreachable")
 
+    async def list_models(self) -> list[dict]:
+        """GET /api/tags: the models Ollama currently has pulled, for the
+        settings-page dropdown. Returns `{"name": str, "vision": bool}` dicts,
+        vision-capable models first, then alphabetically within each group.
+        """
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                resp = await client.get(f"{self.url}/api/tags")
+        except httpx.HTTPError as exc:
+            raise OllamaError(f"Ollama is not reachable at {self.url}: {describe(exc)}") from exc
+        if resp.status_code >= 400:
+            try:
+                detail = resp.json().get("error", "")
+            except ValueError:
+                detail = resp.text[:200]
+            raise OllamaError(f"Ollama error {resp.status_code}: {detail or resp.reason_phrase}")
+        try:
+            data = resp.json()
+        except ValueError as exc:
+            raise OllamaError(f"Ollama returned invalid JSON for /api/tags: {describe(exc)}") from exc
+
+        models = []
+        for entry in data.get("models", []):
+            name = entry.get("name")
+            if not name:
+                continue
+            models.append({"name": name, "vision": "vision" in (entry.get("capabilities") or [])})
+        models.sort(key=lambda m: (not m["vision"], m["name"]))
+        return models
+
     async def classify(self, model: str, prompt: str, schema: dict, png: bytes) -> dict:
         body = {
             "model": model,

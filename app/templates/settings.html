@@ -16,7 +16,34 @@
 <div class="card">
   <form method="post" action="/settings">
     <label for="ollama_model">Ollama model</label>
+    {% if ollama_models %}
+    <select id="ollama_model" name="ollama_model" required>
+      {% if ollama_models | selectattr("missing", "defined") | list %}
+      <optgroup label="Current (not found in Ollama)">
+        {% for m in ollama_models if m.missing is defined %}
+        <option value="{{ m.name }}" {% if m.name == ollama_model %}selected{% endif %}>{{ m.name }} (current, not found in Ollama)</option>
+        {% endfor %}
+      </optgroup>
+      {% endif %}
+      <optgroup label="Vision models (recommended)">
+        {% for m in ollama_models if m.vision and m.missing is not defined %}
+        <option value="{{ m.name }}" {% if m.name == ollama_model %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </optgroup>
+      <optgroup label="Text-only - won't work for classification">
+        {% for m in ollama_models if not m.vision and m.missing is not defined %}
+        <option value="{{ m.name }}" {% if m.name == ollama_model %}selected{% endif %}>{{ m.name }}</option>
+        {% endfor %}
+      </optgroup>
+    </select>
+    <div class="hint">Vision-capable models are listed first - classification needs a vision model to read the document image.</div>
+    {% else %}
     <input type="text" id="ollama_model" name="ollama_model" value="{{ ollama_model }}" required>
+    <div class="hint">
+      Exact Ollama model name (e.g. qwen2.5vl:7b) - must be a vision-capable model.
+      Ollama's model list couldn't be loaded{% if ollama_models_error %} ({{ ollama_models_error }}){% endif %}, so this is a plain text field for now.
+    </div>
+    {% endif %}
 
     <label for="classify_dpi">Classify DPI</label>
     <input type="number" id="classify_dpi" name="classify_dpi" value="{{ classify_dpi }}" required>

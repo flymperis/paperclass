@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import base64
 import json
+import logging
 from pathlib import Path
 
 from fastapi import APIRouter, Form, Request
@@ -18,8 +19,11 @@ from ..classifier import classify
 from ..config import get_settings
 from ..db import engine
 from ..models import ClassificationRun, RunStatus
+from ..ollama import OllamaError
 from ..render import Pages
 from ..worker import enqueue
+
+log = logging.getLogger("paperclass")
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(Path(__file__).parent.parent / "templates"))
@@ -147,6 +151,10 @@ async def test_apply(request: Request, paperless_id: int = Form(...)):
 async def settings_form(request: Request):
     cfg = runtime_config.load()
     settings = get_settings()
+
+    ollama_models, ollama_models_error = await _fetch_ollama_models(request)
+    ollama_models = _ensure_current_model_present(ollama_models, cfg.ollama_model)
+
     return templates.TemplateResponse(
         request,
         "settings.html",
@@ -155,6 +163,8 @@ async def settings_form(request: Request):
             "candidate_tags": "\n".join(json.loads(cfg.candidate_tags)),
             "correspondent_blacklist": "\n".join(json.loads(cfg.correspondent_blacklist)),
             "ollama_model": cfg.ollama_model,
+            "ollama_models": ollama_models,
+            "ollama_models_error": ollama_models_error,
             "classify_dpi": cfg.classify_dpi,
             "taxonomy_refresh_minutes": cfg.taxonomy_refresh_minutes,
             "paperless_url": settings.paperless_url,
@@ -163,6 +173,27 @@ async def settings_form(request: Request):
             "error": None,
         },
     )
+
+
+async def _fetch_ollama_models(request: Request) -> tuple[list[dict], str | None]:
+    """Best-effort model list for the settings dropdown: on any failure to
+    reach Ollama, fall back to an empty list (the template then falls back to
+    a plain text input) rather than let the whole settings page 500."""
+    try:
+        return await request.app.state.ollama.list_models(), None
+    except OllamaError as exc:
+        log.warning("could not list Ollama models for settings page: %s", exc)
+        return [], str(exc)
+
+
+def _ensure_current_model_present(models: list[dict], current: str) -> list[dict]:
+    """Make sure the configured model is always a selectable option, even if
+    it wasn't returned by Ollama (e.g. removed from Ollama, or Ollama was
+    unreachable) - so saving the form without touching the field can never
+    silently switch it to something else."""
+    if not models or any(m["name"] == current for m in models):
+        return models
+    return [*models, {"name": current, "vision": False, "missing": True}]
 
 
 @router.post("/settings")
@@ -175,11 +206,14 @@ async def settings_save(
     taxonomy_refresh_minutes: str = Form(...),
 ):
     settings = get_settings()
+    ollama_models, ollama_models_error = await _fetch_ollama_models(request)
     context = {
         "active": "settings",
         "candidate_tags": candidate_tags,
         "correspondent_blacklist": correspondent_blacklist,
         "ollama_model": ollama_model,
+        "ollama_models": _ensure_current_model_present(ollama_models, ollama_model),
+        "ollama_models_error": ollama_models_error,
         "classify_dpi": classify_dpi,
         "taxonomy_refresh_minutes": taxonomy_refresh_minutes,
         "paperless_url": settings.paperless_url,

@@ -80,14 +80,18 @@
   .stat .n { font-size: 26px; font-weight: 700; }
   .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
   label { display: block; font-weight: 600; margin: 14px 0 6px; }
-  input[type=text], input[type=number], textarea {
+  input[type=text], input[type=number], textarea, select {
     width: 100%;
     padding: 8px 10px;
     border: 1px solid var(--border);
     border-radius: 8px;
     font-size: 14px;
     font-family: inherit;
+    background: var(--card);
+    color: var(--text);
   }
+  optgroup { font-weight: 600; }
+  optgroup option { font-weight: 400; }
   .hint { color: var(--muted); font-size: 12px; margin-top: 4px; }
   button {
     background: var(--accent);
