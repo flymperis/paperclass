@@ -22,15 +22,17 @@ from .taxonomy import Taxonomy, is_blacklisted_correspondent
 
 # Scanner/app defaults and bare filenames: "Scan_2026-01-01", "IMG_1234", a bare
 # timestamp, a bare UUID, or similar - never a title a human bothered to write.
+# Date with an optional time, e.g. "2026-09-25", "2026_09_25 18.18.10", "2026-09-25T18:18".
+_TIMESTAMP = r"\d{4}[-_.]\d{2}[-_.]\d{2}([\s_t-]+\d{2}[-_.:]\d{2}([-_.:]\d{2})?)?"
 _GENERIC_TITLE_RE = re.compile(
-    r"""^(
-        scan[\s_-]*\d*([\s_-]*\d{4}[-_]\d{2}[-_]\d{2})? |
+    rf"""^(
+        scan[\s_-]*\d*([\s_-]*{_TIMESTAMP})? |
         img[\s_-]*\d+ |
         (image|photo|document|doc|untitled|scanned[\s_-]*document|file|attachment)([\s_-]*\(?\d+\)?)? |
         download(ed|s)?([\s_-]*\(?\d+\)?)? |
         new[\s_-]*document(s)?([\s_-]*\(?\d+\)?)? |
-        \d{4}[-_]\d{2}[-_]\d{2}([\s_t]\d{2}[-_:]\d{2}(:\d{2})?)? |
-        [0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
+        {_TIMESTAMP} |
+        [0-9a-f]{{8}}-[0-9a-f]{{4}}-[0-9a-f]{{4}}-[0-9a-f]{{4}}-[0-9a-f]{{12}}
     )$""",
     re.IGNORECASE | re.VERBOSE,
 )
