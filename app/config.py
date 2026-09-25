@@ -29,6 +29,7 @@ class Settings(BaseSettings):
         "Prescription",
         "Shopping",
         "Vehicle",
+        "Water",
     ]
     correspondent_blacklist: list[str] = [
         "Fotis Lymperis",
