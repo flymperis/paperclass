@@ -22,6 +22,21 @@ log = logging.getLogger("paperclass")
 _background_tasks: list[asyncio.Task] = []
 
 
+async def _initial_refresh(taxonomy: Taxonomy, max_delay: float = 30.0) -> None:
+    """Retry the first taxonomy load until Paperless answers. After a host
+    reboot Paperless can take a minute or more to come up; crashing here
+    instead makes systemd restart us in a tight loop until it gives up."""
+    delay = 2.0
+    while True:
+        try:
+            await taxonomy.refresh()
+            return
+        except Exception as exc:
+            log.warning("Paperless not reachable yet (%s), retrying in %.0fs", exc, delay)
+            await asyncio.sleep(delay)
+            delay = min(delay * 2, max_delay)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
@@ -33,7 +48,7 @@ async def lifespan(app: FastAPI):
         settings.ollama_url, settings.ollama_timeout_seconds, settings.ollama_num_ctx, settings.ollama_keep_alive
     )
     taxonomy = Taxonomy(paperless, settings.needs_review_tag)
-    await taxonomy.refresh()
+    await _initial_refresh(taxonomy)
     log.info(
         "taxonomy loaded: %d document types, %d candidate tags found",
         len(taxonomy.type_ids),

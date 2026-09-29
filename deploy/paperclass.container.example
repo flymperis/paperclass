@@ -4,7 +4,8 @@
 
 [Unit]
 Description=paperclass
-After=network-online.target
+Wants=network-online.target
+After=network-online.target paperless-webserver.service
 
 [Container]
 Image=localhost/paperclass:latest
@@ -21,6 +22,7 @@ HealthOnFailure=kill
 
 [Service]
 Restart=always
+RestartSec=10
 TimeoutStartSec=300
 
 [Install]
