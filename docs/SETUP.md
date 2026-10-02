@@ -33,9 +33,10 @@ paperclass has two layers of configuration:
 | `CLASSIFY_DPI` | `150` | DPI used when rendering the page image sent to the model. Only seeds the runtime setting on first run. |
 | `WEBHOOK_SECRET` | *(empty)* | Shared secret required in the `X-Paperclass-Secret` header on `POST /webhook/classify` and `GET /api/runs`. Empty disables this check entirely - fine for a trusted LAN, but set it if the port is reachable from anywhere less trusted. |
 | `LOG_RAW_WEBHOOKS` | `false` | Log the raw headers/body of every inbound webhook call. Turn this on temporarily while wiring up a new Paperless Workflow so you can see exactly what Paperless sent. |
+| `FORWARD_WEBHOOKS` | `[]` | JSON array of `{"tag", "url", "secret"}` rules. After a document is classified, every rule whose tag was applied gets a `POST` to `url` with `{"event": "classified", "document_id", "tags", "document_type", "correspondent", "title"}` (and an `X-Webhook-Secret` header when `secret` is set). See [Forwarding to other apps](#forwarding-to-other-apps). |
 | `DATA_DIR` | `./data` | Where the SQLite database (`paperclass.db`) lives. |
 
-Values with a `list[str]` type (`CANDIDATE_TAGS`, `CORRESPONDENT_BLACKLIST`) must be valid JSON
+Values with a list type (`CANDIDATE_TAGS`, `CORRESPONDENT_BLACKLIST`, `FORWARD_WEBHOOKS`) must be valid JSON
 arrays in the env file, not comma-separated text.
 
 ### Runtime settings (`/settings` page, no restart needed)
@@ -98,6 +99,21 @@ result is itself a string (rather than a dict), parses it a second time. You don
 anything about this yourself - it's mentioned here so that if you ever inspect the raw webhook
 payload (e.g. with `LOG_RAW_WEBHOOKS=true`) and it looks "double-quoted" and confusing, you know
 that's expected and not a misconfiguration.
+
+### Forwarding to other apps
+
+paperclass can hand a document over to another app once it knows what the document is - for
+example every bill tagged `Electricity` to an electricity-bill tracker, which then reads the document
+from Paperless itself:
+
+```env
+FORWARD_WEBHOOKS=[{"tag": "Electricity", "url": "http://vibe-electricity:8000/api/webhook", "secret": "<shared secret>"}]
+```
+
+Forwarding is best-effort: it happens only for runs that end `classified` (not `needs_review`), a
+receiver that is down or slow (10 s timeout) is only logged, and it never changes the classification
+result. Receivers should therefore also poll Paperless for the tag as a fallback. The active rules
+are listed on the `/settings` page.
 
 ## Deployment
 

@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 from sqlmodel import Session, select
 
 from . import runtime_config
+from . import forward
 from .classifier import classify
 from .db import engine
 from .models import ClassificationRun, RunStatus
@@ -172,6 +173,10 @@ async def _process(run_id: int, paperless: Paperless, ollama: Ollama, taxonomy: 
             session.add(run)
             session.commit()
             log.info("doc %s -> type=%s status=%s (%.1fs)", paperless_id, result.document_type, status, run.duration_s)
+
+        if status == RunStatus.CLASSIFIED:
+            applied_names = [t for t in result.tags if t in taxonomy.tag_ids]
+            await forward.notify(paperless_id, result, applied_names)
     except Exception as exc:
         log.exception("classification failed for doc %s", paperless_id)
         with Session(engine) as session:
