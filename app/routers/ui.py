@@ -169,6 +169,7 @@ async def settings_form(request: Request):
             "taxonomy_refresh_minutes": cfg.taxonomy_refresh_minutes,
             "paperless_url": settings.paperless_url,
             "ollama_url": settings.ollama_url,
+            "forward_webhooks": settings.forward_webhooks,
             "flash": None,
             "error": None,
         },
@@ -218,6 +219,7 @@ async def settings_save(
         "taxonomy_refresh_minutes": taxonomy_refresh_minutes,
         "paperless_url": settings.paperless_url,
         "ollama_url": settings.ollama_url,
+        "forward_webhooks": settings.forward_webhooks,
         "flash": None,
         "error": None,
     }

@@ -5,7 +5,16 @@ from __future__ import annotations
 import os
 from functools import lru_cache
 
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings
+
+
+class ForwardWebhook(BaseModel):
+    """POST the document id to `url` after classification when `tag` was applied."""
+
+    tag: str
+    url: str
+    secret: str = ""  # sent as the X-Webhook-Secret header when set
 
 
 class Settings(BaseSettings):
@@ -43,6 +52,8 @@ class Settings(BaseSettings):
 
     webhook_secret: str = ""
     log_raw_webhooks: bool = False
+    # JSON array, e.g. [{"tag": "Electricity", "url": "http://bills:8000/api/webhook", "secret": ""}]
+    forward_webhooks: list[ForwardWebhook] = []
 
     data_dir: str = "./data"
 

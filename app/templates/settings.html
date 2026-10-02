@@ -68,5 +68,11 @@
   <h2>Connection (edit .env + restart to change)</h2>
   <p><strong>Paperless URL:</strong> {{ paperless_url }}</p>
   <p><strong>Ollama URL:</strong> {{ ollama_url }}</p>
+  <p><strong>Forward after classification:</strong>
+  {% if forward_webhooks %}</p>
+  <ul>
+    {% for f in forward_webhooks %}<li>tag <code>{{ f.tag }}</code> &rarr; {{ f.url }}{% if f.secret %} (with secret){% endif %}</li>{% endfor %}
+  </ul>
+  {% else %}none (<code>FORWARD_WEBHOOKS</code>)</p>{% endif %}
 </div>
 {% endblock %}
